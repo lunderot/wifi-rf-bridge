@@ -112,14 +112,54 @@ http_init(void)
     espconn_regist_time(&masterconn, 10, 0);
 }
 
-void blinky(void *arg)
+const uint32_t code_on = 0b111010101011101010101110100000; //Real
+const uint32_t code_on_reverse = 0b000001011101010101110101010111;
+
+void transmit(void *arg)
 {
-    static uint8_t state = 0;
-    GPIO_OUTPUT_SET(2, state);
-    state ^= 1;
+    static uint8_t bit = 0;
+    static uint8_t part = 0;
+    static uint16_t wait = 0;
+
+    if(wait > 0)
+    {
+        GPIO_OUTPUT_SET(2, 0);
+        wait--;
+        return;
+    }
+
+    uint8_t currentBit = (code_on_reverse >> bit) & 1;
+    switch (part)
+    {
+    case 0:
+        GPIO_OUTPUT_SET(2, 1);
+        break;
+    case 1:
+    case 2:
+        if(currentBit)
+            GPIO_OUTPUT_SET(2, 0);
+        break;
+    case 3:
+        GPIO_OUTPUT_SET(2, 0);
+        break;
+    default:
+        break;
+    }
+    part++;
+    if(part == 4)
+    {
+        part = 0;
+        bit++;
+    }
+    if(bit == 25)
+    {
+        bit = 0;
+        wait = 30;
+    }
 }
 
-void ICACHE_FLASH_ATTR user_init(void)
+void ICACHE_FLASH_ATTR
+user_init(void)
 {
     gpio_init();
 
@@ -135,9 +175,9 @@ void ICACHE_FLASH_ATTR user_init(void)
     wifi_station_set_config(&stationConf);
     wifi_station_connect();
 
-    os_timer_disarm(&ptimer);
-    os_timer_setfn(&ptimer, (os_timer_func_t *)blinky, NULL);
-    os_timer_arm(&ptimer, 1000, 1);
+    hw_timer_init(0, 1);
+    hw_timer_set_func(transmit);
+    hw_timer_arm(350);
 
     http_init();
 }

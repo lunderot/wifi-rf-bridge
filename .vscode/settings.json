@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "osapi.h": "c",
+        "espconn.h": "c"
+    }
+}
