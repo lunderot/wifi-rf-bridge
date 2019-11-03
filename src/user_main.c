@@ -8,6 +8,8 @@
 #include "user_interface.h"
 #include "wifi_config.h"
 
+#include <rfplug.h>
+
 static os_timer_t ptimer;
 
 /******************************************************************************
@@ -112,85 +114,10 @@ http_init(void)
     espconn_regist_time(&masterconn, 10, 0);
 }
 
-#define expand(a) (\
-    (0b1010101010           ) | \
-    (0b0100000000 & (a << 4)) | \
-    (0b0001000000 & (a << 3)) | \
-    (0b0000010000 & (a << 2)) | \
-    (0b0000000100 & (a << 1)) | \
-    (0b0000000001 & (a << 0))   \
-)
-
-#define expand_state(a) ( \
-    (0b10101) | \
-    (0b01000 & ( a << 3)) | \
-    (0b00010 & (~a << 1)) \
-)
-
-#define code(a, b, state) (\
-    (expand(a)  << 15) | \
-    (expand(b)  << 5 ) | \
-    (expand_state(state) << 0) \
-)
-
-#define STATES_PER_BIT 4
-#define BITS_PER_CODE 25
-#define PREAMBLE_LENGTH 30
-#define PORT 2
-static uint8_t send = 0;
-static uint32_t code = code(0b10000, 0b10000, 1);
-
-void transmit(void *arg)
-{
-    static uint8_t bit = 0;
-    static uint8_t part = 0;
-    static uint16_t wait = 0;
-
-    if (send)
-    {
-        if (wait)
-        {
-            GPIO_OUTPUT_SET(PORT, 0);
-            wait--;
-            return;
-        }
-        switch (part)
-        {
-        case 0:
-            GPIO_OUTPUT_SET(PORT, 1);
-            break;
-        case 1:
-        case 2:
-            if ((code >> bit) & 1)
-                GPIO_OUTPUT_SET(PORT, 0);
-            break;
-        case 3:
-            GPIO_OUTPUT_SET(PORT, 0);
-            break;
-        default:
-            break;
-        }
-        part++;
-        if (part == STATES_PER_BIT)
-        {
-            part = 0;
-            bit++;
-        }
-        if (bit == BITS_PER_CODE)
-        {
-            bit = 0;
-            wait = PREAMBLE_LENGTH;
-            send--;
-        }
-    }
-    else {
-        GPIO_OUTPUT_SET(PORT, 0);
-    }
-}
-
 void blinky(void *arg)
 {
-	send = 4;
+    rfplug_set_code(rfplug_generate_code(0b10000, 0b10000, 1));
+	rfplug_send(4);
 }
 
 void ICACHE_FLASH_ATTR
@@ -213,10 +140,8 @@ user_init(void)
     os_timer_disarm(&ptimer);
     os_timer_setfn(&ptimer, (os_timer_func_t *)blinky, NULL);
     os_timer_arm(&ptimer, 5000, 1);
-
-    hw_timer_init(0, 1);
-    hw_timer_set_func(transmit);
-    hw_timer_arm(350);
+    
+    rfplug_init();
 
     http_init();
 }
