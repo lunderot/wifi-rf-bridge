@@ -11,24 +11,24 @@
 #define rfplug_PORT 2
 
 #define rfplug_expand(a) (\
-    (0b1010101010           ) | \
-    (0b0100000000 & (a << 4)) | \
-    (0b0001000000 & (a << 3)) | \
-    (0b0000010000 & (a << 2)) | \
-    (0b0000000100 & (a << 1)) | \
-    (0b0000000001 & (a << 0))   \
+    (0b0101010101           ) | \
+    (0b0000000010 & (a >> 3)) | \
+    (0b0000001000 & (a     )) | \
+    (0b0000100000 & (a << 3)) | \
+    (0b0010000000 & (a << 6)) | \
+    (0b1000000000 & (a << 9))   \
 )
 
 #define rfplug_expand_state(a) ( \
     (0b10101) | \
-    (0b01000 & ( a << 3)) | \
-    (0b00010 & (~a << 1)) \
+    (0b00010 & ( a << 1)) | \
+    (0b01000 & (~a << 3))   \
 )
 
 #define rfplug_generate_code(main_id, sub_id, state) (\
-    (rfplug_expand(main_id) << 15) | \
-    (rfplug_expand(sub_id)  << 5 ) | \
-    (rfplug_expand_state(state != 0) << 0) \
+    (rfplug_expand_state(state != 0) << 20) | \
+    (rfplug_expand(sub_id)  << 10 ) | \
+    (rfplug_expand(main_id)) \
 )
 
 void rfplug_transmit(void *arg);
