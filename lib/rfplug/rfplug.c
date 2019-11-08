@@ -6,13 +6,6 @@ uint8_t send = 0;
 uint8_t part = 0;
 uint8_t bit = 0;
 
-void rfplug_init()
-{
-    hw_timer_init(0, 1);
-    hw_timer_set_func(rfplug_transmit);
-    hw_timer_arm(rfplug_TIME_PER_STATE);
-}
-
 void rfplug_transmit(void *arg)
 {
     if (send)
@@ -55,6 +48,13 @@ void rfplug_transmit(void *arg)
     else {
         GPIO_OUTPUT_SET(rfplug_PORT, 0);
     }
+}
+
+void rfplug_init()
+{
+    hw_timer_init(0, 1);
+    hw_timer_set_func(rfplug_transmit);
+    hw_timer_arm(rfplug_TIME_PER_STATE);
 }
 
 void rfplug_set_code(uint32_t c)

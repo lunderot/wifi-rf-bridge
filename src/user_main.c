@@ -10,7 +10,6 @@
 
 #include <rfplug.h>
 
-static os_timer_t ptimer;
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -65,6 +64,7 @@ user_rf_cal_sector_set(void)
 }
 
 LOCAL struct espconn masterconn;
+static os_timer_t ptimer;
 
 const char *msg_welcome =
     "HTTP/1.1 200 OK\r\n"
@@ -114,10 +114,13 @@ http_init(void)
     espconn_regist_time(&masterconn, 10, 0);
 }
 
+static uint8_t state = 0;
+
 void blinky(void *arg)
 {
-    rfplug_set_code(rfplug_generate_code(0b10000, 0b10000, 1));
+    rfplug_set_code(rfplug_generate_code(0b10000, 0b10000, state));
 	rfplug_send(4);
+    state ^= 1;
 }
 
 void ICACHE_FLASH_ATTR

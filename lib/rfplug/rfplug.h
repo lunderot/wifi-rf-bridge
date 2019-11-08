@@ -26,12 +26,11 @@
 )
 
 #define rfplug_generate_code(main_id, sub_id, state) (\
-    (rfplug_expand_state(state != 0) << 20) | \
+    (rfplug_expand_state(state) << 20) | \
     (rfplug_expand(sub_id)  << 10 ) | \
     (rfplug_expand(main_id)) \
 )
 
-void rfplug_transmit(void *arg);
 void rfplug_init();
 void rfplug_set_code(uint32_t code);
 void rfplug_send(uint8_t num);
