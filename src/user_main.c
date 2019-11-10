@@ -7,9 +7,9 @@
 
 #include "user_interface.h"
 #include "wifi_config.h"
+#include "index_html.h"
 
 #include <rfplug.h>
-
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -66,13 +66,12 @@ user_rf_cal_sector_set(void)
 LOCAL struct espconn masterconn;
 static os_timer_t ptimer;
 
-const char *msg_welcome =
+const char *http_header =
     "HTTP/1.1 200 OK\r\n"
-    "Content-Length: 6\r\n"
+    "Content-Length: %d\r\n"
     "Content-Type: text/html\r\n"
     "Connection: Closed\r\n"
-    "\r\n"
-    "Hello!";
+    "\r\n";
 
 LOCAL void ICACHE_FLASH_ATTR
 tcp_disconnect(void *arg)
@@ -86,7 +85,26 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
 {
     struct espconn *pespconn = (struct espconn *)arg;
     os_printf("sending data\n");
-    espconn_send(pespconn, (uint8 *)msg_welcome, os_strlen(msg_welcome));
+
+    const unsigned char *content = index_html;
+    size_t content_sz = index_html_len;
+    size_t buffer_sz = strlen(http_header) + content_sz + 64;
+
+    char *buffer = (char *)os_zalloc(buffer_sz);
+    size_t header_sz = os_sprintf(buffer, http_header, content_sz + 4);
+    size_t align_pad_pre = header_sz % 4;
+    size_t align_pad_post = 4 - align_pad_pre;
+    memset(buffer + header_sz, ' ', align_pad_pre);
+
+    uint32 *src = (uint32 *)(content);
+    uint32 *dst = (uint32 *)(buffer + header_sz + align_pad_pre);
+    uint32 loop = ((index_html_len + 4) - (index_html_len % 4)) / 4;
+    while (loop--)
+    {
+        *(dst++) = *(src++);
+    }
+    memset(buffer + header_sz + align_pad_pre + content_sz, ' ', align_pad_post);
+    espconn_send(pespconn, (uint8 *)buffer, header_sz + align_pad_pre + content_sz + align_pad_post);
 }
 
 LOCAL void ICACHE_FLASH_ATTR
@@ -119,7 +137,7 @@ static uint8_t state = 0;
 void blinky(void *arg)
 {
     rfplug_set_code(rfplug_generate_code(0b10000, 0b10000, state));
-	rfplug_send(4);
+    rfplug_send(4);
     state ^= 1;
 }
 
@@ -143,7 +161,7 @@ user_init(void)
     os_timer_disarm(&ptimer);
     os_timer_setfn(&ptimer, (os_timer_func_t *)blinky, NULL);
     os_timer_arm(&ptimer, 5000, 1);
-    
+
     rfplug_init();
 
     http_init();

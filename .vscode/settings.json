@@ -3,6 +3,7 @@
         "osapi.h": "c",
         "espconn.h": "c",
         "os_type.h": "c",
-        "ets_sys.h": "c"
+        "ets_sys.h": "c",
+        "mem.h": "c"
     }
 }
