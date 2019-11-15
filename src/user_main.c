@@ -84,27 +84,55 @@ LOCAL void ICACHE_FLASH_ATTR
 tcp_recv(void *arg, char *pusrdata, unsigned short length)
 {
     struct espconn *pespconn = (struct espconn *)arg;
-    os_printf("sending data\n");
 
-    const unsigned char *content = index_html;
-    size_t content_sz = index_html_len;
+    unsigned char *content = NULL;
+    size_t content_sz = 0;
+
+    char *path = (char *)os_zalloc(64);
+    char *begin = os_strchr(pusrdata, ' ') + 1;
+    char *end = os_strchr(begin, ' ');
+    os_memcpy(path, begin, end - begin);
+
+    os_printf("Path is: %s\n", path);
+
+    if (!os_strcmp(path, "/"))
+    {
+        content = (char *)index_html;
+        content_sz = index_html_len;
+    }
+    else if (!os_strcmp(path, "/get"))
+    {
+        content = (char *)json_data;
+        content_sz = json_data_len;
+    }
+    os_free(path);
+
     size_t buffer_sz = strlen(http_header) + content_sz + 64;
 
     char *buffer = (char *)os_zalloc(buffer_sz);
     size_t header_sz = os_sprintf(buffer, http_header, content_sz + 4);
-    size_t align_pad_pre = header_sz % 4;
-    size_t align_pad_post = 4 - align_pad_pre;
-    memset(buffer + header_sz, ' ', align_pad_pre);
+    os_printf("header_sz: %d\n", header_sz);
 
+    size_t align_pad_post = header_sz % 4;
+    size_t align_pad_pre = 4 - align_pad_post;
+
+    os_printf("align_pad_pre: %d\n", align_pad_pre);
+    os_printf("align_pad_post: %d\n", align_pad_post);
+
+    memset(buffer + header_sz, ' ', align_pad_pre);
     uint32 *src = (uint32 *)(content);
     uint32 *dst = (uint32 *)(buffer + header_sz + align_pad_pre);
-    uint32 loop = ((index_html_len + 4) - (index_html_len % 4)) / 4;
+    uint32 loop = ((content_sz + 4) - (content_sz % 4)) / 4;
+    os_printf("buffer: %X\n", src);
+    os_printf("src: %X\n", src);
+    os_printf("dst: %X\n", dst);
     while (loop--)
     {
         *(dst++) = *(src++);
     }
     memset(buffer + header_sz + align_pad_pre + content_sz, ' ', align_pad_post);
     espconn_send(pespconn, (uint8 *)buffer, header_sz + align_pad_pre + content_sz + align_pad_post);
+    os_free(buffer);
 }
 
 LOCAL void ICACHE_FLASH_ATTR

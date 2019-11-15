@@ -31,8 +31,8 @@
     (rfplug_expand(main_id)) \
 )
 
-void rfplug_init();
-void rfplug_set_code(uint32_t code);
-void rfplug_send(uint8_t num);
+void ICACHE_FLASH_ATTR rfplug_init();
+void ICACHE_FLASH_ATTR rfplug_set_code(uint32_t code);
+void ICACHE_FLASH_ATTR rfplug_send(uint8_t num);
 
 #endif

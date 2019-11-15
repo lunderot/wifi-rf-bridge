@@ -3,6 +3,4 @@
 
 #include "ets_sys.h"
 
-const char ICACHE_RODATA_ATTR index =;
-
 #endif

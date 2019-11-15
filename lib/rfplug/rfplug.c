@@ -50,19 +50,19 @@ void rfplug_transmit(void *arg)
     }
 }
 
-void rfplug_init()
+void ICACHE_FLASH_ATTR rfplug_init()
 {
     hw_timer_init(0, 1);
     hw_timer_set_func(rfplug_transmit);
     hw_timer_arm(rfplug_TIME_PER_STATE);
 }
 
-void rfplug_set_code(uint32_t c)
+void ICACHE_FLASH_ATTR rfplug_set_code(uint32_t c)
 {
     code = c;
 }
 
-void rfplug_send(uint8_t num)
+void ICACHE_FLASH_ATTR rfplug_send(uint8_t num)
 {
     send = num;
 }
