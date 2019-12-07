@@ -77,11 +77,14 @@ const char* http_post_response =
     "HTTP/1.1 201 Created\r\n"
     "\r\n";
 
+const char* http_not_found = 
+    "HTTP/1.1 404 Not Found\r\n"
+    "\r\n";
+
 LOCAL void ICACHE_FLASH_ATTR
 tcp_disconnect(void *arg)
 {
     struct espconn *pespconn = (struct espconn *)arg;
-    os_printf("tcp connection disconnected\n");
 }
 
 LOCAL void ICACHE_FLASH_ATTR
@@ -91,21 +94,13 @@ http_send(struct espconn *pespconn, const unsigned char* header, const unsigned 
 
     char *buffer = (char *)os_zalloc(buffer_sz);
     size_t header_sz = os_sprintf(buffer, header, content_sz + 4);
-    os_printf("header_sz: %d\n", header_sz);
-
     size_t align_pad_post = header_sz % 4;
     size_t align_pad_pre = 4 - align_pad_post;
-
-    os_printf("align_pad_pre: %d\n", align_pad_pre);
-    os_printf("align_pad_post: %d\n", align_pad_post);
 
     memset(buffer + header_sz, ' ', align_pad_pre);
     uint32 *src = (uint32 *)(content);
     uint32 *dst = (uint32 *)(buffer + header_sz + align_pad_pre);
     uint32 loop = ((content_sz + 4) - (content_sz % 4)) / 4;
-    os_printf("buffer: %X\n", src);
-    os_printf("src: %X\n", src);
-    os_printf("dst: %X\n", dst);
     while (loop--)
     {
         *(dst++) = *(src++);
@@ -147,6 +142,12 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
         content = "nothing";
         content_sz = strlen(content);
     }
+    else
+    {
+        header = http_not_found;
+        content = "nothing";
+        content_sz = strlen(content);
+    }
     os_free(path);
 
     http_send(pespconn, header, content, content_sz);
@@ -156,8 +157,6 @@ LOCAL void ICACHE_FLASH_ATTR
 tcp_connect(void *arg)
 {
     struct espconn *pespconn = (struct espconn *)arg;
-
-    os_printf("tcp connection established\n");
 
     espconn_regist_recvcb(pespconn, tcp_recv);
     espconn_regist_disconcb(pespconn, tcp_disconnect);
