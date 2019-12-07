@@ -73,6 +73,10 @@ const char *http_header =
     "Connection: Closed\r\n"
     "\r\n";
 
+const char* http_post_response =
+    "HTTP/1.1 201 Created\r\n"
+    "\r\n";
+
 LOCAL void ICACHE_FLASH_ATTR
 tcp_disconnect(void *arg)
 {
@@ -81,36 +85,12 @@ tcp_disconnect(void *arg)
 }
 
 LOCAL void ICACHE_FLASH_ATTR
-tcp_recv(void *arg, char *pusrdata, unsigned short length)
+http_send(struct espconn *pespconn, const unsigned char* header, const unsigned char* content, size_t content_sz)
 {
-    struct espconn *pespconn = (struct espconn *)arg;
-
-    unsigned char *content = NULL;
-    size_t content_sz = 0;
-
-    char *path = (char *)os_zalloc(64);
-    char *begin = os_strchr(pusrdata, ' ') + 1;
-    char *end = os_strchr(begin, ' ');
-    os_memcpy(path, begin, end - begin);
-
-    os_printf("Path is: %s\n", path);
-
-    if (!os_strcmp(path, "/"))
-    {
-        content = (char *)index_html;
-        content_sz = index_html_len;
-    }
-    else if (!os_strcmp(path, "/get"))
-    {
-        content = (char *)json_data;
-        content_sz = json_data_len;
-    }
-    os_free(path);
-
-    size_t buffer_sz = strlen(http_header) + content_sz + 64;
+    size_t buffer_sz = strlen(header) + content_sz + 64;
 
     char *buffer = (char *)os_zalloc(buffer_sz);
-    size_t header_sz = os_sprintf(buffer, http_header, content_sz + 4);
+    size_t header_sz = os_sprintf(buffer, header, content_sz + 4);
     os_printf("header_sz: %d\n", header_sz);
 
     size_t align_pad_post = header_sz % 4;
@@ -133,6 +113,43 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     memset(buffer + header_sz + align_pad_pre + content_sz, ' ', align_pad_post);
     espconn_send(pespconn, (uint8 *)buffer, header_sz + align_pad_pre + content_sz + align_pad_post);
     os_free(buffer);
+}
+
+LOCAL void ICACHE_FLASH_ATTR
+tcp_recv(void *arg, char *pusrdata, unsigned short length)
+{
+    struct espconn *pespconn = (struct espconn *)arg;
+
+    const unsigned char *content = NULL;
+    size_t content_sz = 0;
+    const unsigned char *header = http_header;
+
+    char *path = (char *)os_zalloc(64);
+    char *begin = os_strchr(pusrdata, ' ') + 1;
+    char *end = os_strchr(begin, ' ');
+    os_memcpy(path, begin, end - begin);
+
+    os_printf("Path is: %s\n", path);
+
+    if (!os_strcmp(path, "/"))
+    {
+        content = index_html;
+        content_sz = index_html_len;
+    }
+    else if (!os_strcmp(path, "/get"))
+    {
+        content = json_data;
+        content_sz = json_data_len;
+    }
+    else if(!os_strcmp(path, "/set"))
+    {
+        header = http_post_response;
+        content = "nothing";
+        content_sz = strlen(content);
+    }
+    os_free(path);
+
+    http_send(pespconn, header, content, content_sz);
 }
 
 LOCAL void ICACHE_FLASH_ATTR
