@@ -73,11 +73,11 @@ const char *http_header =
     "Connection: Closed\r\n"
     "\r\n";
 
-const char* http_post_response =
+const char *http_post_response =
     "HTTP/1.1 201 Created\r\n"
     "\r\n";
 
-const char* http_not_found = 
+const char *http_not_found =
     "HTTP/1.1 404 Not Found\r\n"
     "\r\n";
 
@@ -88,26 +88,33 @@ tcp_disconnect(void *arg)
 }
 
 LOCAL void ICACHE_FLASH_ATTR
-http_send(struct espconn *pespconn, const unsigned char* header, const unsigned char* content, size_t content_sz)
+http_send(struct espconn *pespconn, const unsigned char *header, const unsigned char *content, size_t content_sz)
 {
-    size_t buffer_sz = strlen(header) + content_sz + 64;
-
-    char *buffer = (char *)os_zalloc(buffer_sz);
-    size_t header_sz = os_sprintf(buffer, header, content_sz + 4);
-    size_t align_pad_post = header_sz % 4;
-    size_t align_pad_pre = 4 - align_pad_post;
-
-    memset(buffer + header_sz, ' ', align_pad_pre);
-    uint32 *src = (uint32 *)(content);
-    uint32 *dst = (uint32 *)(buffer + header_sz + align_pad_pre);
-    uint32 loop = ((content_sz + 4) - (content_sz % 4)) / 4;
-    while (loop--)
+    if (content_sz && content)
     {
-        *(dst++) = *(src++);
+        size_t buffer_sz = strlen(header) + content_sz + 64;
+
+        char *buffer = (char *)os_zalloc(buffer_sz);
+        size_t header_sz = os_sprintf(buffer, header, content_sz + 4);
+        size_t align_pad_post = header_sz % 4;
+        size_t align_pad_pre = 4 - align_pad_post;
+
+        memset(buffer + header_sz, ' ', align_pad_pre);
+        uint32 *src = (uint32 *)(content);
+        uint32 *dst = (uint32 *)(buffer + header_sz + align_pad_pre);
+        uint32 loop = ((content_sz + 4) - (content_sz % 4)) / 4;
+        while (loop--)
+        {
+            *(dst++) = *(src++);
+        }
+        memset(buffer + header_sz + align_pad_pre + content_sz, ' ', align_pad_post);
+        espconn_send(pespconn, (uint8 *)buffer, header_sz + align_pad_pre + content_sz + align_pad_post);
+        os_free(buffer);
     }
-    memset(buffer + header_sz + align_pad_pre + content_sz, ' ', align_pad_post);
-    espconn_send(pespconn, (uint8 *)buffer, header_sz + align_pad_pre + content_sz + align_pad_post);
-    os_free(buffer);
+    else
+    {
+        espconn_send(pespconn, (uint8 *)header, strlen(header));
+    }
 }
 
 LOCAL void ICACHE_FLASH_ATTR
@@ -136,20 +143,19 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
         content = json_data;
         content_sz = json_data_len;
     }
-    else if(!os_strcmp(path, "/set"))
+    else if (!os_strcmp(path, "/set"))
     {
         header = http_post_response;
-        content = "nothing";
-        content_sz = strlen(content);
+        content = NULL;
+        content_sz = 0;
     }
     else
     {
         header = http_not_found;
-        content = "nothing";
-        content_sz = strlen(content);
+        content = NULL;
+        content_sz = 0;
     }
     os_free(path);
-
     http_send(pespconn, header, content, content_sz);
 }
 
