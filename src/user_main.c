@@ -4,12 +4,14 @@
 #include "mem.h"
 #include "user_interface.h"
 #include "espconn.h"
+#include "json/jsonparse.h"
 
 #include "user_interface.h"
 #include "wifi_config.h"
 #include "index_html.h"
 
 #include <rfplug.h>
+#include <jsonplug.h>
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -148,6 +150,14 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
         header = http_post_response;
         content = NULL;
         content_sz = 0;
+
+        char *json = os_strstr(pusrdata, "\r\n\r\n") + 4;
+        size_t json_len = length - (json - pusrdata);
+
+        struct jsonplug_plug plug;
+        jsonplug_parse(json, json_len, &plug);
+
+        os_printf("Name: %s\nCode: %d\nState: %d\n", plug.name, plug.code, plug.state);
     }
     else
     {

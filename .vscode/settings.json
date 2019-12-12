@@ -4,6 +4,9 @@
         "espconn.h": "c",
         "os_type.h": "c",
         "ets_sys.h": "c",
-        "mem.h": "c"
+        "mem.h": "c",
+        "json.h": "c",
+        "jsonparse.h": "c",
+        "c_types.h": "c"
     }
 }
