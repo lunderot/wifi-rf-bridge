@@ -16,7 +16,7 @@ struct jsonplug_plug
 #define JSONPLUG_ERROR 1
 
 void ICACHE_FLASH_ATTR jsonplug_parse(const char* json, size_t length, struct jsonplug_plug* plug);
-void ICACHE_FLASH_ATTR jsonplug_write(struct jsonplug_plug* plug);
+void ICACHE_FLASH_ATTR jsonplug_write(struct jsonplug_plug* plug, char* const buffer, size_t buffer_sz);
 
 
 #endif

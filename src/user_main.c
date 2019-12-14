@@ -66,7 +66,6 @@ user_rf_cal_sector_set(void)
 }
 
 LOCAL struct espconn masterconn;
-static os_timer_t ptimer;
 
 const char *http_header =
     "HTTP/1.1 200 OK\r\n"
@@ -127,6 +126,7 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     const unsigned char *content = NULL;
     size_t content_sz = 0;
     const unsigned char *header = http_header;
+    char* json_buffer = (char*)os_zalloc(256);
 
     char *path = (char *)os_zalloc(64);
     char *begin = os_strchr(pusrdata, ' ') + 1;
@@ -142,8 +142,15 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     }
     else if (!os_strcmp(path, "/get"))
     {
-        content = json_data;
-        content_sz = json_data_len;
+        struct jsonplug_plug plug = {
+            "Kitchen",
+            1234,
+            1
+        };
+        jsonplug_write(&plug, json_buffer, 256);
+        os_printf("JSON:\n%s\n", json_buffer);
+        content = json_buffer;
+        content_sz = strlen(json_buffer);
     }
     else if (!os_strcmp(path, "/set"))
     {
@@ -167,6 +174,7 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     }
     os_free(path);
     http_send(pespconn, header, content, content_sz);
+    os_free(json_buffer);
 }
 
 LOCAL void ICACHE_FLASH_ATTR
@@ -192,15 +200,6 @@ http_init(void)
     espconn_regist_time(&masterconn, 10, 0);
 }
 
-static uint8_t state = 0;
-
-void blinky(void *arg)
-{
-    rfplug_set_code(rfplug_generate_code(0b10000, 0b10000, state));
-    rfplug_send(4);
-    state ^= 1;
-}
-
 void ICACHE_FLASH_ATTR
 user_init(void)
 {
@@ -217,10 +216,6 @@ user_init(void)
     os_memcpy(&stationConf.password, password, 32);
     wifi_station_set_config(&stationConf);
     wifi_station_connect();
-
-    os_timer_disarm(&ptimer);
-    os_timer_setfn(&ptimer, (os_timer_func_t *)blinky, NULL);
-    os_timer_arm(&ptimer, 5000, 1);
 
     rfplug_init();
 
