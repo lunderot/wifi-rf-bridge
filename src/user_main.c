@@ -82,6 +82,12 @@ const char *http_not_found =
     "HTTP/1.1 404 Not Found\r\n"
     "\r\n";
 
+struct jsonplug_plug plugs[] = {
+    {.code = 123, .state = 1},
+    {.code = 12345, .state = 1},
+    {.code = 1111, .state = 0},
+};
+
 LOCAL void ICACHE_FLASH_ATTR
 tcp_disconnect(void *arg)
 {
@@ -126,7 +132,7 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     const unsigned char *content = NULL;
     size_t content_sz = 0;
     const unsigned char *header = http_header;
-    char* json_buffer = (char*)os_zalloc(256);
+    char *json_buffer = (char *)os_zalloc(256);
 
     char *path = (char *)os_zalloc(64);
     char *begin = os_strchr(pusrdata, ' ') + 1;
@@ -142,12 +148,7 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
     }
     else if (!os_strcmp(path, "/get"))
     {
-        struct jsonplug_plug plug = {
-            "Kitchen",
-            1234,
-            1
-        };
-        jsonplug_write(&plug, json_buffer, 256);
+        jsonplug_write(plugs, json_buffer, 256);
         os_printf("JSON:\n%s\n", json_buffer);
         content = json_buffer;
         content_sz = strlen(json_buffer);
@@ -165,6 +166,8 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
         jsonplug_parse(json, json_len, &plug);
 
         os_printf("Name: %s\nCode: %d\nState: %d\n", plug.name, plug.code, plug.state);
+
+        rfplug_send(rfplug_generate_code(plug.code, 3, plug.state), 4);
     }
     else
     {
@@ -203,6 +206,10 @@ http_init(void)
 void ICACHE_FLASH_ATTR
 user_init(void)
 {
+    strcpy(&plugs[0].name[0], "Kitchen");
+    strcpy(&plugs[1].name[0], "Bedroom");
+    strcpy(&plugs[2].name[0], "TV");
+
     gpio_init();
 
     uart_init(115200, 115200);

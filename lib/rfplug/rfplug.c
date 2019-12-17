@@ -57,12 +57,8 @@ void ICACHE_FLASH_ATTR rfplug_init()
     hw_timer_arm(rfplug_TIME_PER_STATE);
 }
 
-void ICACHE_FLASH_ATTR rfplug_set_code(uint32_t c)
+void ICACHE_FLASH_ATTR rfplug_send(uint32_t c, uint8_t num)
 {
     code = c;
-}
-
-void ICACHE_FLASH_ATTR rfplug_send(uint8_t num)
-{
     send = num;
 }

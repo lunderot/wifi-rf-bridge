@@ -32,7 +32,6 @@
 )
 
 void ICACHE_FLASH_ATTR rfplug_init();
-void ICACHE_FLASH_ATTR rfplug_set_code(uint32_t code);
-void ICACHE_FLASH_ATTR rfplug_send(uint8_t num);
+void ICACHE_FLASH_ATTR rfplug_send(uint32_t c, uint8_t num);
 
 #endif

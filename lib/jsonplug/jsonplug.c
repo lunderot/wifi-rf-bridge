@@ -40,29 +40,30 @@ void ICACHE_FLASH_ATTR jsonplug_parse(const char *json, size_t length, struct js
     }
 }
 
-int ICACHE_FLASH_ATTR jsonplug_get(struct jsontree_context *js_ctx)
-{
-    const char *path = jsontree_path_name(js_ctx, js_ctx->depth - 1);
-    os_printf("json path: %s", path);
-
-    if (os_strncmp(path, "code", 4) == 0)
-    {
-        jsontree_write_int(js_ctx, 1234);
-    }
-    else if (os_strncmp(path, "name", 4) == 0)
-    {
-        jsontree_write_string(js_ctx, "Kitchen");
-    }
-    else if (os_strncmp(path, "state", 5) == 0)
-    {
-        jsontree_write_int(js_ctx, 0);
-    }
-    return 0;
-}
-
 LOCAL char *json_buf;
 LOCAL int pos;
 LOCAL int size;
+LOCAL struct jsonplug_plug *plugs_data;
+
+int ICACHE_FLASH_ATTR jsonplug_get(struct jsontree_context *js_ctx)
+{
+    const char *path = jsontree_path_name(js_ctx, js_ctx->depth - 1);
+    int index = js_ctx->index[js_ctx->depth - 2];
+
+    if (os_strncmp(path, "code", 4) == 0)
+    {
+        jsontree_write_int(js_ctx, plugs_data[index].code);
+    }
+    else if (os_strncmp(path, "name", 4) == 0)
+    {
+        jsontree_write_string(js_ctx, plugs_data[index].name);
+    }
+    else if (os_strncmp(path, "state", 5) == 0)
+    {
+        jsontree_write_int(js_ctx, plugs_data[index].state);
+    }
+    return 0;
+}
 
 int ICACHE_FLASH_ATTR
 json_putchar(int c)
@@ -82,6 +83,7 @@ JSONTREE_OBJECT(plug,
                 JSONTREE_PAIR("name", &switch_callback),
                 JSONTREE_PAIR("code", &switch_callback),
                 JSONTREE_PAIR("state", &switch_callback));
+
 JSONTREE_ARRAY(plugs,
                JSONTREE_PAIR_ARRAY(&plug),
                JSONTREE_PAIR_ARRAY(&plug),
@@ -89,8 +91,9 @@ JSONTREE_ARRAY(plugs,
 
 JSONTREE_OBJECT(main, JSONTREE_PAIR("plugs", &plugs));
 
-void ICACHE_FLASH_ATTR jsonplug_write(struct jsonplug_plug *plug, char *const buffer, size_t buffer_sz)
+void ICACHE_FLASH_ATTR jsonplug_write(struct jsonplug_plug plugs[3], char *const buffer, size_t buffer_sz)
 {
+    plugs_data = plugs;
     json_buf = buffer;
     size = buffer_sz;
     pos = 0;
