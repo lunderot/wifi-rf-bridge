@@ -83,9 +83,9 @@ const char *http_not_found =
     "\r\n";
 
 struct jsonplug_plug plugs[] = {
-    {.code = 123, .state = 1},
-    {.code = 12345, .state = 1},
-    {.code = 1111, .state = 0},
+    {.code = 0b10000, .state = 1},
+    {.code = 0b10000, .state = 1},
+    {.code = 0b10000, .state = 0},
 };
 
 LOCAL void ICACHE_FLASH_ATTR
@@ -165,9 +165,17 @@ tcp_recv(void *arg, char *pusrdata, unsigned short length)
         struct jsonplug_plug plug;
         jsonplug_parse(json, json_len, &plug);
 
-        os_printf("Name: %s\nCode: %d\nState: %d\n", plug.name, plug.code, plug.state);
+        os_printf("Name: %s\nCode: %d\nState: %d\n\n", plug.name, plug.code, plug.state);
 
-        rfplug_send(rfplug_generate_code(plug.code, 3, plug.state), 4);
+        rfplug_send(rfplug_generate_code(0b10000, plug.code, plug.state), 4);
+        for (size_t i = 0; i < 3; i++)
+        {
+            if (!strcmp(plug.name, plugs[i].name))
+            {
+                memcpy(&plugs[i], &plug, sizeof(plug));
+                break;
+            }
+        }
     }
     else
     {
