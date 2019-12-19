@@ -76,10 +76,12 @@ const char *http_header =
 
 const char *http_post_response =
     "HTTP/1.1 201 Created\r\n"
+    "Content-Length: 0\r\n"
     "\r\n";
 
 const char *http_not_found =
     "HTTP/1.1 404 Not Found\r\n"
+    "Content-Length: 0\r\n"
     "\r\n";
 
 struct jsonplug_plug plugs[] = {
